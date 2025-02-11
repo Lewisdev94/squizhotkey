@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "SquizzyCuts",
+  "version": "1.0",
+  "description": "Appends suffixes to the current URL using keyboard commands. If a suffix is already present, it toggles or replaces it.",
+  "permissions": [
+    "tabs",
+    "scripting"
+  ],
+  "action": {
+    "default_title": "URL Suffix Shortcut"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "open-admin": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A",
+        "mac": "Shift+Alt+A"
+      },
+      "description": "Append /_admin to the current URL"
+    },
+    "open-recache": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+R",
+        "mac": "Shift+Alt+R"
+      },
+      "description": "Append /_recache to the current URL"
+    },
+    "open-nocache": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+N",
+        "mac": "Shift+Alt+N"
+      },
+      "description": "Append /_nocache to the current URL"
+    }
+  }
+}
