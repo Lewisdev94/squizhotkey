@@ -1,69 +1,71 @@
 chrome.commands.onCommand.addListener((command) => {
-    // Query the active tab in the current window.
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const currentTab = tabs[0];
-        if (currentTab && currentTab.url) {
-            try {
-                const urlObj = new URL(currentTab.url);
-
-                // Map commands to their corresponding suffix strings.
-                const suffixMapping = {
-                    "open-admin": "_admin",
-                    "open-recache": "_recache",
-                    "open-nocache": "_nocache"
-                };
-
-                // Ensure the command is recognized.
-                if (!(command in suffixMapping)) {
-                    return;
-                }
-                const newSuffix = suffixMapping[command];
-
-                // Start with the current pathname.
-                let originalPath = urlObj.pathname;
-
-                // Remove any trailing suffixes.
-                let lastRemovedSuffix = null;
-                while (true) {
-                    let found = false;
-                    // Loop through all known suffixes.
-                    for (const suffix of Object.values(suffixMapping)) {
-                        // Check if the pathname ends with "/" followed by a suffix.
-                        if (originalPath.endsWith('/' + suffix)) {
-                            // Record the removed suffix.
-                            lastRemovedSuffix = suffix;
-                            // Remove the suffix (and its preceding slash) from the end.
-                            originalPath = originalPath.substring(0, originalPath.length - (suffix.length + 1));
-                            found = true;
-                            break; // Exit the for-loop to check again.
-                        }
-                    }
-                    if (!found) {
-                        break;
-                    }
-                }
-
-                // Make sure we have a proper trailing slash.
-                if (originalPath === "") {
-                    originalPath = "/";
-                } else if (!originalPath.endsWith('/')) {
-                    originalPath += '/';
-                }
-
-                // Decide whether to toggle off or append a new suffix:
-                // If the last removed suffix equals the new suffix, then toggle it off.
-                // Otherwise, append the new suffix.
-                if (lastRemovedSuffix === newSuffix) {
-                    urlObj.pathname = originalPath;
-                } else {
-                    urlObj.pathname = originalPath + newSuffix;
-                }
-
-                // Update the active tab with the new URL.
-                chrome.tabs.update(currentTab.id, { url: urlObj.toString() });
-            } catch (error) {
-                console.error('Error processing URL:', error);
+      const currentTab = tabs[0];
+      if (currentTab && currentTab.url) {
+        try {
+          const urlObj = new URL(currentTab.url);
+  
+          // Map commands to their corresponding suffix strings.
+          const suffixMapping = {
+            "open-admin": "_admin",
+            "open-recache": "_recache",
+            "open-nocache": "_nocache"
+          };
+  
+          if (!(command in suffixMapping)) {
+            console.warn("Unrecognized command:", command);
+            return;
+          }
+          const newSuffix = suffixMapping[command];
+  
+          // Remove a trailing slash if present (unless the entire path is just "/").
+          let basePath = urlObj.pathname;
+          if (basePath !== "/" && basePath.endsWith("/")) {
+            basePath = basePath.slice(0, -1);
+          }
+  
+          // Remove any known suffix that might be appended.
+          let removedSuffix = null;
+          let candidate;
+          let found = true;
+          while (found) {
+            found = false;
+            for (const suffix of Object.values(suffixMapping)) {
+              candidate = "/" + suffix;
+              if (basePath.endsWith(candidate)) {
+                removedSuffix = suffix;
+                basePath = basePath.substring(0, basePath.length - candidate.length);
+                found = true;
+                break; // Break the for-loop to check again from the start.
+              }
             }
+          }
+          // Ensure the basePath is at least "/"
+          if (basePath === "") {
+            basePath = "/";
+          }
+  
+          // Decide whether to toggle off or to append the new suffix:
+          // - If the removed suffix equals the new suffix, toggle it off.
+          // - Otherwise, append the new suffix.
+          if (removedSuffix === newSuffix) {
+            // Toggle off: set pathname to the cleaned basePath.
+            urlObj.pathname = basePath;
+          } else {
+            // Append the new suffix.
+            // Be careful if the basePath is the root "/" to avoid double slashes.
+            if (basePath === "/") {
+              urlObj.pathname = "/" + newSuffix;
+            } else {
+              urlObj.pathname = basePath + "/" + newSuffix;
+            }
+          }
+  
+          // Update the active tab with the new URL.
+          chrome.tabs.update(currentTab.id, { url: urlObj.toString() });
+        } catch (error) {
+          console.error("Error processing URL:", error);
         }
+      }
     });
-});
+  });
